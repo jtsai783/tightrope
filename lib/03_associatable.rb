@@ -33,7 +33,7 @@ class BelongsToOptions < AssocOptions
     end
     
     if options[:class_name].nil?
-      self.class_name = "#{name.camelcase}"
+      self.class_name = "#{name.to_s.camelcase}"
     else
       self.class_name = options[:class_name]
     end
@@ -55,7 +55,7 @@ class HasManyOptions < AssocOptions
     end
     
     if options[:class_name].nil?
-      self.class_name = name.singularize.camelcase
+      self.class_name = name.to_s.singularize.camelcase
     else
       self.class_name = options[:class_name]
     end
@@ -67,12 +67,19 @@ module Associatable
   def belongs_to(name, options = {})
     options = BelongsToOptions.new(name, options)
     define_method(name) do
-      
+      foreign_key = self.send(options.foreign_key)
+      klass = options.model_class
+      klass.where(options.primary_key => foreign_key).first
     end
   end
 
   def has_many(name, options = {})
-    # ...
+    options = HasManyOptions.new(name, self.name, options)
+    define_method(name) do
+      primary_key = self.send(options.primary_key)
+      klass = options.model_class
+      klass.where(options.foreign_key => primary_key)
+    end
   end
 
   def assoc_options
@@ -81,5 +88,5 @@ module Associatable
 end
 
 class SQLObject
-  # Mixin Associatable here...
+  extend Associatable
 end
